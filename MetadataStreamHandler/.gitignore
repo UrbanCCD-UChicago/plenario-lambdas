@@ -1,0 +1,12 @@
+# Python
+secrets.py
+
+# PyCharm
+.idea/
+
+# Libraries
+psycopg2/
+
+# Deployments
+*.zip
+
