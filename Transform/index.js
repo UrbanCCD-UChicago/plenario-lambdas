@@ -8,8 +8,8 @@ function transform(record) {
     var data = JSON.parse(decodedData);
     data.data = JSON.stringify(data.data);
 
-    var row = `${data.node_id},${data.datetime},${data.meta_id},`;
-    row += `${data.sensor},'${data.data}'\n`; 
+    var row = `${data.network}, ${data.node_id},${data.datetime},`
+    row += `${data.meta_id},${data.sensor},'${data.data}'\n`; 
     row = row.replace(/"/g, '""');
     row = row.replace(/'/g, '"');
     
