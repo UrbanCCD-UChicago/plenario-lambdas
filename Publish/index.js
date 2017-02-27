@@ -31,9 +31,9 @@ function publish(records, channels) {
     records.forEach((record) => {
         Object.keys(channels).forEach((channel) => {
             var message = JSON.stringify(record);
-            if (channel === 'all')
-                pusher.trigger('all', 'data', { message: message });
-            if (record.node_id === channel) 
+            if (channel === 'private-all')
+                pusher.trigger('private-all', 'data', { message: message });
+            if ('private-' + record.node_id === channel) 
                 pusher.trigger(channel, 'data', { message: message });
         });
     });
