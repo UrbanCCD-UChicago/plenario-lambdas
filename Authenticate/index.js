@@ -38,7 +38,9 @@ exports.handler = (event, context, callback) => {
     console.log(auth);
     var response = {
         statusCode: 200,
-        headers: {},
+        headers: {
+            'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify(auth)
     };
     
