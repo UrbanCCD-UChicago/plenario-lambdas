@@ -1,3 +1,4 @@
+var http = require('http');
 var Pusher = require('pusher');
 
 
@@ -9,13 +10,24 @@ var pusher = new Pusher({
 });
 
 
+/** 
+ * Reverse object keys and values.
+ */
+function reverse(o) {
+  var result = {};
+  for(var key in o) {
+    result[o[key]] = key;
+  }
+  return result;
+}
+
+
 /**
  * Extract the base64 data encoded in the kinesis record to an object. 
  * @return {Object}
  */
 function decode(record) {
     var data = new Buffer(record.kinesis.data, 'base64').toString();
-    console.log('decode.data: ' + data);
     try {
         return JSON.parse(data);
     } catch (SyntaxError) {
@@ -25,16 +37,71 @@ function decode(record) {
 
 
 /**
- * Iterate through incoming records and publish to the appropriate channels.
+ * If the sensor maps to an available feature of interest, provide it, otherwise 
+ * reject it as null.
+ * @return {Object}
+ */ 
+function format(record, networkMap) {
+    var node = record.node;
+    var sensor = record.sensor;
+    
+    var nodeMetadata;
+    var sensorMetadata;
+    
+    nodeMetadata = networkMap[node];
+    
+    if (!nodeMetadata) return null;
+    
+    sensorMetadata = nodeMetadata[sensor];
+
+    if (!sensorMetadata) return null;
+
+    var mapping = reverse(sensorMetadata);
+    var feature = '';
+    
+    for (var property in record.data) {
+        if (!(property in mapping)) return null;
+
+        feature = mapping[property].split('.')[0];
+        var formalName = mapping[property].split('.')[1];
+        record.data[formalName] = record.data[property];
+        delete record.data[property];
+    }
+    
+    record.feature = feature;
+    return record;
+}
+
+
+/**
+ * Iterate through incoming records and emit to the appropriate channels.
  */
-function publish(records, channels) {
+function emit(records, channels) {
     records.forEach((record) => {
-        Object.keys(channels).forEach((channel) => {
+        if (!record) return;
+        
+        channels.forEach((channel) => {
             var message = JSON.stringify(record);
-            if (channel === 'private-all')
+            if (channel === 'private-all') {
                 pusher.trigger('private-all', 'data', { message: message });
+            }
             if ('private-' + record.node === channel) 
                 pusher.trigger(channel, 'data', { message: message });
+            }
+        });
+    });
+}
+
+
+/**
+ * Get sensor network metadata from plenario.
+ */
+function getNetworkMap() {
+    return new Promise((resolve, reject) => {
+        http.get(process.env.PLENARIO_MAP_URI, (response) => {
+            var chunks = '';
+            response.on('data', (chunk) => chunks += chunk);
+            response.on('end', () => resolve(JSON.parse(chunks)));
         });
     });
 }
@@ -46,10 +113,15 @@ function publish(records, channels) {
  */
 function handler(event, context) {
     var records = event.Records.map(decode);
-    pusher.get({path: '/channels'}, (error, request, response) => {
-        var result = JSON.parse(response.body);
-        var channels = result.channels;
-        publish(records, channels);
+
+    getNetworkMap().then((networkMap) => {
+        records = records.map((record) => format(record, networkMap));
+        
+        pusher.get({path: '/channels'}, (error, request, response) => {
+            var result = JSON.parse(response.body);
+            var channels = Object.keys(result.channels);
+            emit(records, channels);
+        });
     });
 }
 
