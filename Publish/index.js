@@ -33,7 +33,7 @@ function publish(records, channels) {
             var message = JSON.stringify(record);
             if (channel === 'private-all')
                 pusher.trigger('private-all', 'data', { message: message });
-            if ('private-' + record.node_id === channel) 
+            if ('private-' + record.node === channel) 
                 pusher.trigger(channel, 'data', { message: message });
         });
     });
