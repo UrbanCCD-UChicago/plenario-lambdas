@@ -88,7 +88,7 @@ function emit(records, channels) {
             if ('private-' + record.node === channel) 
                 pusher.trigger(channel, 'data', { message: message });
             }
-        });
+        );
     });
 }
 
