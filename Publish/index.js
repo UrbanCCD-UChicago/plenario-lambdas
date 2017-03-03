@@ -58,14 +58,16 @@ function format(record, networkMap) {
 
     var mapping = reverse(sensorMetadata);
     var feature = '';
-    
+
     for (var property in record.data) {
         if (!(property in mapping)) return null;
 
         feature = mapping[property].split('.')[0];
         var formalName = mapping[property].split('.')[1];
         record.data[formalName] = record.data[property];
-        delete record.data[property];
+        if (formalName != property) {
+            delete record.data[property];
+        }
     }
     
     record.feature = feature;
@@ -85,10 +87,16 @@ function emit(records, channels) {
         channels.forEach((channel) => {
             var message = JSON.stringify(record);
 
-            if (channel === 'private-all')
+            if (channel === 'private-all') {
                 pusher.trigger('private-all', 'data', { message: message });
-            if ('private-' + record.node === channel)
+                console.log('published to ' + channel);
+                console.log(record);
+            }
+            if ('private-' + record.node === channel) {
                 pusher.trigger(channel, 'data', { message: message });
+                console.log('published to ' + channel);
+                console.log(record);
+            }
         });
     });
 }
@@ -114,6 +122,8 @@ function getNetworkMap() {
  */
 function handler(event, context) {
     var records = event.Records.map(decode);
+    console.log('----- records ------');
+    console.log(records);
 
     getNetworkMap().then((networkMap) => {
         records = records.map((record) => format(record, networkMap));
