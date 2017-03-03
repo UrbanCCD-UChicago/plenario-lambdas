@@ -43,11 +43,11 @@ function decode(record) {
 function convertRawPropertyNames(data, sensorMap) {
     sensorMap = reverse(sensorMap);
     result = {};
-    data.forEach((rawProperty) => {
+    for (var rawProperty in data) {
         var featureProperty = sensorMap[rawProperty];
         var property = featureProperty.split('.')[0];
         result[property] = data[rawProperty];
-    });
+    }
     return result;
 }
 
@@ -61,32 +61,24 @@ function format(record, networkMap) {
     var node = record.node;
     var sensor = record.sensor;
     
-    console.log('record');
-    console.log(record);
-    console.log('networkMap');
-    console.log(networkMap);
+    var nodeMetadata;
+    var sensorMetadata;
     
-    try {
-        var sensorMetadata = networkMap[node][sensor];
-    } catch (TypeError) {}
+    0 / 0;
+
+    nodeMetadata = networkMap[node];
     
-    var observed = Object.keys(record.data)[0];
-    
-    var feature = null;
-    
-    if (!sensorMetadata) console.log(`No metadata exists for ${sensor}`);
-    else {
-        var mapping = reverse(sensorMetadata);
-        feature = mapping[observed];
-    }
-    
-    if (!feature) console.log(`${sensor} doesn't report anything called ${observed}`);
-    else {
-        feature = feature.split('.')[0];
+    if (nodeMetadata) {
+        sensorMetadata = nodeMetadata[sensor];
+        
+        if (sensorMetadata) {
+            var mapping = reverse(sensorMetadata);
+            var observed = Object.keys(record.data)[0];
+            record.data = convertRawPropertyNames(record.data, mapping);
+            record.feature = mapping[observed].split('.')[0];
+        }
     }
 
-    record.feature = feature;
-    record.data = convertRawPropertyNames(record.data);
     console.log(record);
     return record;
 }
@@ -96,19 +88,25 @@ function format(record, networkMap) {
  * Iterate through incoming records and emit to the appropriate channels.
  */
 function emit(records, channels) {
-    console.log('emit');
-    console.log(channels);
     records.forEach((record) => {
         channels.forEach((channel) => {
-            console.log('CHANNEL: ' + channel);
-            console.log(record);
             var message = JSON.stringify(record);
             if (channel === 'private-all')
                 pusher.trigger('private-all', 'data', { message: message });
             if ('private-' + record.node === channel) { 
                 pusher.trigger(channel, 'data', { message: message });
-                console.log('PUBLISHED TO ' + channel);
             }
+        });
+    });
+}
+
+
+function getNetworkMap() {
+    return new Promise((resolve, reject) => {
+        http.get(process.env.PLENARIO_MAP_URI, (response) => {
+            var chunks = '';
+            response.on('data', (chunk) => chunks += chunk);
+            response.on('end', () => resolve(JSON.parse(chunks)));
         });
     });
 }
@@ -120,18 +118,14 @@ function emit(records, channels) {
  */
 function handler(event, context) {
     var records = event.Records.map(decode);
-    http.get(process.env.PLENARIO_MAP_URI, (response) => {
-        var chunks = '';
-        response.on('data', (chunk) => chunks += chunk);
-        response.on('end', () => {
-            var networkMap = JSON.parse(chunks);
-            records = records.map((record) => format(record, networkMap));
-            pusher.get({path: '/channels'}, (error, request, response) => {
-                var result = JSON.parse(response.body);
-                var channels = Object.keys(result.channels);
-                console.log(channels);
-                emit(records, channels);
-            });
+
+    getNetworkMap().then((networkMap) => {
+        records = records.map((record) => format(record, networkMap));
+        
+        pusher.get({path: '/channels'}, (error, request, response) => {
+            var result = JSON.parse(response.body);
+            var channels = Object.keys(result.channels);
+            emit(records, channels);
         });
     });
 }
