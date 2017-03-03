@@ -37,24 +37,8 @@ function decode(record) {
 
 
 /**
- * Standardize a raw property name such as 'accel_x' to 'x' as defined in the
- * feature of interest metadata.
- */
-function convertRawPropertyNames(data, sensorMap) {
-    sensorMap = reverse(sensorMap);
-    result = {};
-    for (var rawProperty in data) {
-        var featureProperty = sensorMap[rawProperty];
-        var property = featureProperty.split('.')[0];
-        result[property] = data[rawProperty];
-    }
-    return result;
-}
-
-
-/**
- * If the sensor maps to an available feature of interest, provide it, otherwise
- * write null for feature.
+ * If the sensor maps to an available feature of interest, provide it, otherwise 
+ * reject it as null.
  * @return {Object}
  */ 
 function format(record, networkMap) {
@@ -64,22 +48,27 @@ function format(record, networkMap) {
     var nodeMetadata;
     var sensorMetadata;
     
-    0 / 0;
-
     nodeMetadata = networkMap[node];
     
-    if (nodeMetadata) {
-        sensorMetadata = nodeMetadata[sensor];
-        
-        if (sensorMetadata) {
-            var mapping = reverse(sensorMetadata);
-            var observed = Object.keys(record.data)[0];
-            record.data = convertRawPropertyNames(record.data, mapping);
-            record.feature = mapping[observed].split('.')[0];
-        }
-    }
+    if (!nodeMetadata) return null;
+    
+    sensorMetadata = nodeMetadata[sensor];
 
-    console.log(record);
+    if (!sensorMetadata) return null;
+
+    var mapping = reverse(sensorMetadata);
+    var feature = '';
+    
+    for (var property in record.data) {
+        if (!(property in mapping)) return null;
+
+        feature = mapping[property].split('.')[0];
+        var formalName = mapping[property].split('.')[1];
+        record.data[formalName] = record.data[property];
+        delete record.data[property];
+    }
+    
+    record.feature = feature;
     return record;
 }
 
@@ -89,10 +78,13 @@ function format(record, networkMap) {
  */
 function emit(records, channels) {
     records.forEach((record) => {
+        if (!record) return;
+        
         channels.forEach((channel) => {
             var message = JSON.stringify(record);
-            if (channel === 'private-all')
+            if (channel === 'private-all') {
                 pusher.trigger('private-all', 'data', { message: message });
+            }
             if ('private-' + record.node === channel) { 
                 pusher.trigger(channel, 'data', { message: message });
             }
@@ -101,6 +93,9 @@ function emit(records, channels) {
 }
 
 
+/**
+ * Get sensor network metadata from plenario.
+ */
 function getNetworkMap() {
     return new Promise((resolve, reject) => {
         http.get(process.env.PLENARIO_MAP_URI, (response) => {
