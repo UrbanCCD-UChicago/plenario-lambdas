@@ -48,6 +48,8 @@ function validate(record) {
  * @return {Object}
  */
 function format(record) {
+    record.node = record.node_id;
+    delete record.node_id;
     return {
       Data: JSON.stringify(record),
       PartitionKey: 'arbitrary'

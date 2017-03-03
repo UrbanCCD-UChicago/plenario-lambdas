@@ -85,7 +85,7 @@ function emit(records, channels) {
             if (channel === 'private-all') {
                 pusher.trigger('private-all', 'data', { message: message });
             }
-            if ('private-' + record.node === channel) { 
+            if ('private-' + record.node === channel) 
                 pusher.trigger(channel, 'data', { message: message });
             }
         });
