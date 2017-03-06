@@ -50,6 +50,8 @@ function validate(record) {
 function format(record) {
     record.node = record.node_id;
     delete record.node_id;
+    record.sensor = record.sensor.toLowerCase();
+    console.log(record);
     return {
       Data: JSON.stringify(record),
       PartitionKey: 'arbitrary'
@@ -91,6 +93,7 @@ function handler(event, context, callback) {
     var decodedRecords = event.Records.map(decode);
     var validRecords = decodedRecords.filter(validate);
     var formattedRecords = validRecords.map(format);
+    console.log(formattedRecords);
     
     putKinesisRecords('PublicationStream', formattedRecords);
     putFirehoseRecords('DatabaseStream', formattedRecords.map(deletePartitionKey));
@@ -101,3 +104,4 @@ function handler(event, context, callback) {
 
 
 exports.handler = handler;
+
