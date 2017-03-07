@@ -51,6 +51,7 @@ function format(record) {
     record.node = record.node_id;
     delete record.node_id;
     record.sensor = record.sensor.toLowerCase();
+    record.datetime = record.datetime.replace("T", " ");
     console.log(record);
     return {
       Data: JSON.stringify(record),
@@ -104,4 +105,3 @@ function handler(event, context, callback) {
 
 
 exports.handler = handler;
-

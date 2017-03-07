@@ -58,7 +58,7 @@ function format(record, networkMap) {
 
     var mapping = reverse(sensorMetadata);
     var feature = '';
-
+    
     for (var property in record.data) {
         if (!(property in mapping)) return null;
 
@@ -78,6 +78,31 @@ function format(record, networkMap) {
 
 
 /**
+ * Determine if a record can be published to a channel.
+ * @return {Boolean}
+ */
+function match(record, channel) {
+    var prefix = channel.split('-')[0];
+    channel = channel.split('-')[1];
+
+    if (prefix != 'private') return false;
+    
+    var channelParts = channel.split(';');
+    var network = channelParts[0];
+    var node = channelParts[1];
+    var sensor = channelParts[2];
+    var feature = channelParts[3];
+    
+    if (network != record.network) return false;
+    if (node && record.node != node) return false;
+    if (sensor && record.sensor != sensor) return false;
+    if (feature && record.feature != feature) return false;
+    
+    return true;
+}
+
+
+/**
  * Iterate through incoming records and emit to the appropriate channels.
  */
 function emit(records, channels) {
@@ -85,17 +110,10 @@ function emit(records, channels) {
         if (!record) return;
         
         channels.forEach((channel) => {
-            var message = JSON.stringify(record);
-
-            if (channel === 'private-all') {
-                pusher.trigger('private-all', 'data', { message: message });
-                console.log('published to ' + channel);
-                console.log(record);
-            }
-            if ('private-' + record.node === channel) {
-                pusher.trigger(channel, 'data', { message: message });
-                console.log('published to ' + channel);
-                console.log(record);
+            var message = { message: JSON.stringify(record) };
+            
+            if (match(record, channel)) {
+                pusher.trigger(channel, 'data', message);
             }
         });
     });
@@ -122,8 +140,6 @@ function getNetworkMap() {
  */
 function handler(event, context) {
     var records = event.Records.map(decode);
-    console.log('----- records ------');
-    console.log(records);
 
     getNetworkMap().then((networkMap) => {
         records = records.map((record) => format(record, networkMap));
