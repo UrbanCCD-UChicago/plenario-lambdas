@@ -1,0 +1,3 @@
+GeoAlchemy2==0.4.0
+psycopg2==2.7.1
+SQLAlchemy==1.1.6
