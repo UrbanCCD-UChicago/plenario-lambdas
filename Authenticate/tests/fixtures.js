@@ -1,4 +1,4 @@
-module.export.authRequest =  {
+module.exports.authRequest =  {
     resource: '/',
     path: '/',
     httpMethod: 'POST',

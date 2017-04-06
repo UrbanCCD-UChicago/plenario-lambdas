@@ -35,9 +35,9 @@ function parse(query) {
  */
 function convert(channel) {
     channel = channel.split(';');
-    
+
     // Remove private- from the beginning of the network name.
-    network = channel[0].split('-');
+    var network = channel[0].split('-');
     network.shift();
     // Rejoin the network field in case the network name had '-'s in it.
     network = network.join('-');
@@ -55,6 +55,10 @@ function convert(channel) {
  * Check the filter parameters provided for a user's specified channel name.
  */
 function validate(channel, tree) {
+    console.log('#validate()');
+    console.log(channel);
+    console.log(tree);
+
     var network = channel.network;
     var node = channel.node;
     var sensor = channel.sensor;
@@ -64,6 +68,8 @@ function validate(channel, tree) {
     if (!(node in tree[network])) return false;
     if (!(sensor in tree[network][node])) return false;
     if (!(feature in tree[network][node][feature])) return false;
+
+    return true;
 }
 
 
@@ -73,12 +79,12 @@ function validate(channel, tree) {
  * https://pusher.com/docs/authenticating_users#implementing_endpoints
  */ 
 exports.handler = (event, context, callback) => {
-    // var body = parse(event.body);
-	// var socketId = body.socket_id;
-  	// var channel = body.channel_name;
-  	// var channelObj = convert(body.channel_name);
+    var body = parse(event.body);
+	var socketId = body.socket_id;
+  	var channel = body.channel_name;
+  	var channelObj = convert(body.channel_name);
     
-    tree().then( tree => {
+    var promise = tree().then( tree => {
 
         var valid = validate(channelObj, tree);
 
@@ -92,7 +98,10 @@ exports.handler = (event, context, callback) => {
         };
 
         callback(null, authResponse);
+        return authResponse;
     });
+
+    return promise;
 };
 
 
@@ -135,6 +144,3 @@ function tree() {
         return tree;
     });
 }
-
-
-exports.handler();
