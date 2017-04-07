@@ -18,7 +18,7 @@ var pusher = new Pusher({
  * Parse and decode query-string like arguments into an object.
  * @return {Object}
  */
-function parse(query) {
+function parseQueryStringToObject(query) {
     var result = {};
     var args = query.split('&');
     for (var i = 0; i < args.length; i++) {
@@ -33,7 +33,7 @@ function parse(query) {
  * Convert a channel name of the form <network>;<node>;<sensor>;<feature> to an
  * object.
  */
-function convert(channel) {
+function convertChannelNameToObject(channel) {
     channel = channel.split(';');
 
     // Remove private- from the beginning of the network name.
@@ -51,23 +51,56 @@ function convert(channel) {
 }
 
 
+function values(object) {
+    var objects = [];
+    for (var key of Object.keys(object)) {
+        objects.push(object[key]);
+    }
+    return objects;
+}
+
+
 /**
  * Check the filter parameters provided for a user's specified channel name.
  */
-function validate(channel, tree) {
-    console.log('#validate()');
-    console.log(channel);
-    console.log(tree);
+function validateChannel(channel, tree) {
 
-    var network = channel.network;
-    var node = channel.node;
-    var sensor = channel.sensor;
-    var feature = channel.features;
+    // > channel
+    // { 
+    //     network: 'array_of_things_chicago',
+    //     node: '0000001e0610ba72',
+    //     sensor: 'tmp421',
+    //     feature: undefined 
+    // }
 
-    if (!(network in tree)) return false;
-    if (!(node in tree[network])) return false;
-    if (!(sensor in tree[network][node])) return false;
-    if (!(feature in tree[network][node][feature])) return false;
+    var network = channel.network;  // 'array_of_things_chicago'
+    var node = channel.node;        // '0000001e0610ba72'
+    var sensor = channel.sensor;    // 'tmp421'
+    var feature = channel.features; // undefined
+
+    if (!network || !(network in tree)) return false;
+
+    tree = tree[network];
+
+    if (node) {
+        if (!(node in tree)) return false;
+        else tree = tree[node];
+    } else {
+        tree = Object.assign(...values(tree));
+    }
+
+    if (sensor) {
+        if (!(sensor in tree)) return false;
+        else {
+            tree = tree[sensor];
+            tree = new Set(values(tree).map( str => str.split('.')[0] ));
+        }
+    }  else {
+        tree = Object.assign(...values(tree));
+        tree = new Set(values(tree).map( str => str.split('.')[0] ));
+    }
+
+    if (feature && !(tree.has(feature))) return false;
 
     return true;
 }
@@ -79,26 +112,38 @@ function validate(channel, tree) {
  * https://pusher.com/docs/authenticating_users#implementing_endpoints
  */ 
 exports.handler = (event, context, callback) => {
-    var body = parse(event.body);
+    var body = parseQueryStringToObject(event.body);
 	var socketId = body.socket_id;
   	var channel = body.channel_name;
-  	var channelObj = convert(body.channel_name);
+  	var channelObj = convertChannelNameToObject(body.channel_name);
     
-    var promise = tree().then( tree => {
+    var promise = getSensorNetworkTree().then( tree => {
 
-        var valid = validate(channelObj, tree);
+        var valid = validateChannel(channelObj, tree);
 
-        var auth = pusher.authenticate(socketId, channel);
-        var authResponse = {
-            statusCode: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*'
-            },
-            body: JSON.stringify(auth)
-        };
+        if (valid) {
+            var auth = pusher.authenticate(socketId, channel);
+            var authResponse = {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify(auth)
+            };
+        }
+        
+        else {
+            var authResponse = {
+                statusCode: 403,
+                headers: {
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: ''
+            };
+        }
 
         callback(null, authResponse);
-        return authResponse;
+        return authResponse.statusCode;
     });
 
     return promise;
@@ -124,7 +169,7 @@ function extractSensors(nodes) {
 
 
 
-function tree() {
+function getSensorNetworkTree() {
     var networkNames = [];
     var promises = [];
 

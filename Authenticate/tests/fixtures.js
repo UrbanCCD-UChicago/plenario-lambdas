@@ -1,55 +1,54 @@
-module.exports.authRequest =  {
-    resource: '/',
-    path: '/',
+module.exports.noAuthRequest =  {
     httpMethod: 'POST',
-    headers: {
-        Accept: '*/*',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'en-US,en;q=0.8',
-        'CloudFront-Forwarded-Proto': 'https',
-        'CloudFront-Is-Desktop-Viewer': 'true',
-        'CloudFront-Is-Mobile-Viewer': 'false',
-        'CloudFront-Is-SmartTV-Viewer': 'false',
-        'CloudFront-Is-Tablet-Viewer': 'false',
-        'CloudFront-Viewer-Country': 'US',
-        'content-type': 'application/x-www-form-urlencoded',
-        Host: 'gm76b1jzz1.execute-api.us-east-1.amazonaws.com',
-        origin: 'http://plenario-private.us-east-1.elasticbeanstalk.com',
-        Referer: 'http://plenario-private.us-east-1.elasticbeanstalk.com/explore/sensors?nodeId=0000001e0610ba72&viewType=download',
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
-        Via: '2.0 30d230ca65162c7f8d6203d2ffd0b398.cloudfront.net (CloudFront)',
-        'X-Amz-Cf-Id': 'ivIgvzVX7XRm3y_KUpmdufAs2IkjH5T77GueUCw1gAHTd_nmF-9eCw==',
-        'X-Amzn-Trace-Id': 'Root=1-58e53e4a-0e6968e4184d00a712972f3a',
-        'X-Forwarded-For': '130.202.24.28, 54.240.144.71',
-        'X-Forwarded-Port': '443',
-        'X-Forwarded-Proto': 'https'
-    },
-    queryStringParameters: null,
-    pathParameters: null,
-    stageVariables: null,
-    requestContext: {
-        accountId: '031052761859',
-        resourceId: '5mrf88gcw9',
-        stage: 'development',
-        requestId: 'd4f8bcf3-1a31-11e7-be0c-0523585d0467',
-        identity: {
-            cognitoIdentityPoolId: null,
-            accountId: null,
-            cognitoIdentityId: null,
-            caller: null,
-            apiKey: null,
-            sourceIp: '130.202.24.28',
-            accessKey: null,
-            cognitoAuthenticationType: null,
-            cognitoAuthenticationProvider: null,
-            userArn: null,
-            userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
-            user: null
-        },
-        resourcePath: '/',
-        httpMethod: 'POST',
-        apiId: 'gm76b1jzz1'
-    },
+    body: 'socket_id=216029.220862&channel_name=',
+}
+
+module.exports.randomAuthRequest =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=asf!@$51n2p9cn;;asdnlkh1$',
+}
+
+module.exports.authRequest =  {
+    httpMethod: 'POST',
     body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3B0000001e0610ba72%3Btmp421',
-    isBase64Encoded: false
+}
+
+module.exports.authRequestNetwork =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago',
+}
+
+module.exports.badAuthRequestNetwork =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_zhivago%3B0000001e0610ba72%3Btmp421',
+}
+
+module.exports.authRequestNode =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3B0000001e0610ba72',
+}
+
+module.exports.badAuthRequestNode =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3Biamnotanode%3Btmp421',
+}
+
+module.exports.authRequestSensor =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3B%3Btmp421',
+}
+
+module.exports.badAuthRequestSensor =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_zhivago%3B0000001e0610ba72%3Biamnotasensor',
+}
+
+module.exports.authRequestFeature =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3B%3B%3Btemperature',
+}
+
+module.exports.badAuthRequestFeature =  {
+    httpMethod: 'POST',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_zhivago%3B%3B%3Biamnotafeature',
 }
