@@ -103,6 +103,8 @@ function validateChannel(channel, tree) {
  * https://pusher.com/docs/authenticating_users#implementing_endpoints
  */ 
 exports.handler = (event, context, callback) => {
+    console.time('[index.js] exports.handler');
+
     var body = parseQueryStringToObject(event.body);
 	var socketId = body.socket_id;
   	var channel = body.channel_name;
@@ -134,6 +136,7 @@ exports.handler = (event, context, callback) => {
         }
 
         callback(null, authResponse);
+        console.timeEnd('[index.js] exports.handler');
         return authResponse.statusCode;
     });
 
@@ -161,6 +164,8 @@ function extractSensors(nodes) {
 
 
 function getSensorNetworkTree() {
+    console.time('[index.js] getSensorNetworkTree');
+
     var networkNames = [];
     var promises = [];
 
@@ -177,6 +182,8 @@ function getSensorNetworkTree() {
             tree[networkNames[i]] = extractSensors(results[i]);
         }
 
+        console.timeEnd('[index.js] getSensorNetworkTree');
+        database.close();
         return tree;
     });
 }
