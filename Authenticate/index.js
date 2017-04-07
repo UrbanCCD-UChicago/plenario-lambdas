@@ -64,19 +64,10 @@ function values(object) {
  * Check the filter parameters provided for a user's specified channel name.
  */
 function validateChannel(channel, tree) {
-
-    // > channel
-    // { 
-    //     network: 'array_of_things_chicago',
-    //     node: '0000001e0610ba72',
-    //     sensor: 'tmp421',
-    //     feature: undefined 
-    // }
-
-    var network = channel.network;  // 'array_of_things_chicago'
-    var node = channel.node;        // '0000001e0610ba72'
-    var sensor = channel.sensor;    // 'tmp421'
-    var feature = channel.features; // undefined
+    var network = channel.network;  
+    var node = channel.node;       
+    var sensor = channel.sensor;    
+    var feature = channel.feature; 
 
     if (!network || !(network in tree)) return false;
 

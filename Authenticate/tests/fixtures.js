@@ -40,7 +40,7 @@ module.exports.authRequestSensor =  {
 
 module.exports.badAuthRequestSensor =  {
     httpMethod: 'POST',
-    body: 'socket_id=216029.220862&channel_name=private-array_of_things_zhivago%3B0000001e0610ba72%3Biamnotasensor',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3B0000001e0610ba72%3Biamnotasensor',
 }
 
 module.exports.authRequestFeature =  {
@@ -50,5 +50,5 @@ module.exports.authRequestFeature =  {
 
 module.exports.badAuthRequestFeature =  {
     httpMethod: 'POST',
-    body: 'socket_id=216029.220862&channel_name=private-array_of_things_zhivago%3B%3B%3Biamnotafeature',
+    body: 'socket_id=216029.220862&channel_name=private-array_of_things_chicago%3B%3B%3Biamnotafeature',
 }
