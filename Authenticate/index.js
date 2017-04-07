@@ -183,7 +183,6 @@ function getSensorNetworkTree() {
         }
 
         console.timeEnd('[index.js] getSensorNetworkTree');
-        database.close();
         return tree;
     });
 }
