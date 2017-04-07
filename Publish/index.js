@@ -1,5 +1,13 @@
+'use strict';
+
 var http = require('http');
 var Pusher = require('pusher');
+
+var Network = require('./model/network');
+var Node = require('./model/node');
+var Sensor = require('./model/sensor');
+var Feature = require('./model/feature');
+require('./model/relations');
 
 
 // https://pusher.com/docs/server_api_guide/interact_rest_api
@@ -42,25 +50,35 @@ function decode(record) {
  * @return {Object}
  */ 
 function format(record, networkMap) {
+    var network = record.network;
     var node = record.node;
     var sensor = record.sensor;
-    
-    var nodeMetadata;
-    var sensorMetadata;
-    
-    nodeMetadata = networkMap[node];
-    
-    if (!nodeMetadata) return null;
-    
-    sensorMetadata = nodeMetadata[sensor];
 
-    if (!sensorMetadata) return null;
+    var networkMetadata = networkMap[network];
 
-    var mapping = reverse(sensorMetadata);
+    if (!networkMetadata) {
+        return null;
+    }
+    
+    var nodeMetadata = networkMetadata[node];
+    
+    if (!nodeMetadata) {
+        return null;
+    }
+    
+    var sensorMetadata = nodeMetadata[sensor];
+
+    if (!sensorMetadata) {
+        return null;
+    }
+
+    var mapping = sensorMetadata;
     var feature = '';
     
     for (var property in record.data) {
-        if (!(property in mapping)) return null;
+        if (!(property in mapping)) {
+            return null;
+        }
 
         feature = mapping[property].split('.')[0];
         var formalName = mapping[property].split('.')[1];
@@ -121,36 +139,71 @@ function emit(records, channels) {
 
 
 /**
- * Get sensor network metadata from plenario.
- */
-function getNetworkMap() {
-    return new Promise((resolve, reject) => {
-        http.get(process.env.PLENARIO_MAP_URI, (response) => {
-            var chunks = '';
-            response.on('data', (chunk) => chunks += chunk);
-            response.on('end', () => resolve(JSON.parse(chunks)));
-        });
-    });
-}
-
-
-/**
  * Implementation of required handler for an incoming batch of kinesis records.
  * http://docs.aws.amazon.com/lambda/latest/dg/with-kinesis-example-deployment-pkg.html#with-kinesis-example-deployment-pkg-nodejs
  */
 function handler(event, context) {
+    console.time('[index.js] handler');
     var records = event.Records.map(decode);
 
-    getNetworkMap().then((networkMap) => {
+    var promise = getSensorNetworkTree().then((networkMap) => {
         records = records.map((record) => format(record, networkMap));
+        var valids = records.filter(r => r);
         
         pusher.get({path: '/channels'}, (error, request, response) => {
             var result = JSON.parse(response.body);
             var channels = Object.keys(result.channels);
             emit(records, channels);
         });
+
+        return [records.length, valids.length];
     });
+
+    return promise;
 }
 
 
 exports.handler = handler;
+
+
+function extractFeatures(sensors) {
+    var result = {};
+    for (var sensor of sensors) {
+        result[sensor.name] = sensor.observed_properties;
+    }
+    return result;
+}
+
+
+function extractSensors(nodes) {
+    var result = {};
+    for (var node of nodes) {
+        result[node.name] = extractFeatures(node.sensor__sensor_metadata);
+    }
+    return result;
+}
+
+
+function getSensorNetworkTree() {
+    console.time('[index.js] getSensorNetworkTree');
+
+    var networkNames = [];
+    var promises = [];
+
+    return Network.findAll().then( networks => {
+        for (var network of networks) {
+            networkNames.push(network.name);
+            promises.push(network.getNodes({ include: [{ model: Sensor }]}));
+        }
+
+        return Promise.all(promises);
+    }).then( results => {
+        var tree = {};
+        for (var i = 0; i < results.length; i++) {
+            tree[networkNames[i]] = extractSensors(results[i]);
+        }
+
+        console.timeEnd('[index.js] getSensorNetworkTree');
+        return tree;
+    });
+}
