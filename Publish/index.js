@@ -12,7 +12,7 @@ require('./model/relations');
 
 // https://pusher.com/docs/server_api_guide/interact_rest_api
 var pusher = new Pusher({
-    appId: process.env.PUSHER_APP_ID,
+    appId: process.env.PUSHER_ID,
     key: process.env.PUSHER_KEY,
     secret: process.env.PUSHER_SECRET
 });
@@ -151,6 +151,7 @@ function handler(event, context) {
         var valids = records.filter(r => r);
         
         pusher.get({path: '/channels'}, (error, request, response) => {
+            console.log(response.body);
             var result = JSON.parse(response.body);
             var channels = Object.keys(result.channels);
             emit(records, channels);
