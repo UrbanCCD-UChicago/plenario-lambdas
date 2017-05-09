@@ -22,10 +22,13 @@ var pusher = new Pusher({
  * Reverse object keys and values.
  */
 function reverse(o) {
+  console.log('[index.js] reverse');
+  console.time('[index.js] reverse');
   var result = {};
   for(var key in o) {
     result[o[key]] = key;
   }
+  console.timeEnd('[index.js] reverse');
   return result;
 }
 
@@ -35,12 +38,15 @@ function reverse(o) {
  * @return {Object}
  */
 function decode(record) {
+    console.log('[index.js] decode');
+    console.time('[index.js] decode');
     var data = new Buffer(record.kinesis.data, 'base64').toString();
     try {
         return JSON.parse(data);
     } catch (SyntaxError) {
         return {};
     }
+    console.timeEnd('[index.js] decode');
 }
 
 
@@ -124,6 +130,8 @@ function match(record, channel) {
  * Iterate through incoming records and emit to the appropriate channels.
  */
 function emit(records, channels) {
+    console.log('[index.js] emit');
+    console.time('[index.js] emit');
     records.forEach((record) => {
         if (!record) return;
         
@@ -135,6 +143,7 @@ function emit(records, channels) {
             }
         });
     });
+    console.timeEnd('[index.js] emit');
 }
 
 
@@ -143,6 +152,7 @@ function emit(records, channels) {
  * http://docs.aws.amazon.com/lambda/latest/dg/with-kinesis-example-deployment-pkg.html#with-kinesis-example-deployment-pkg-nodejs
  */
 function handler(event, context) {
+    console.log('[index.js] handler');
     console.time('[index.js] handler');
     var records = event.Records.map(decode);
 
@@ -157,6 +167,7 @@ function handler(event, context) {
             emit(records, channels);
         });
 
+        console.timeEnd('[index.js] handler');
         return [records.length, valids.length];
     });
 
@@ -168,24 +179,31 @@ exports.handler = handler;
 
 
 function extractFeatures(sensors) {
+    console.log('[index.js] extractFeatures');
+    console.time('[index.js] extractFeatures');
     var result = {};
     for (var sensor of sensors) {
         result[sensor.name] = sensor.observed_properties;
     }
+    console.timeEnd('[index.js] extractFeatures');
     return result;
 }
 
 
 function extractSensors(nodes) {
+    console.log('[index.js] extractSensors');
+    console.time('[index.js] extractSensors');
     var result = {};
     for (var node of nodes) {
         result[node.name] = extractFeatures(node.sensor__sensor_metadata);
     }
+    console.timeEnd('[index.js] extractSensors');
     return result;
 }
 
 
 function getSensorNetworkTree() {
+    console.log('[index.js] getSensorNetworkTree');
     console.time('[index.js] getSensorNetworkTree');
 
     var networkNames = [];
@@ -208,3 +226,4 @@ function getSensorNetworkTree() {
         return tree;
     });
 }
+
