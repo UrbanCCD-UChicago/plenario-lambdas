@@ -1,0 +1,19 @@
+{
+  "name": "publish-lambda",
+  "version": "1.0.0",
+  "description": "AWS lambda function that grabs incoming sensor observations off a Kinesis stream and publishes them to Redshift and Plenario socket server",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UrbanCCD-UChicago/plenario-lambdas.git"
+  },
+  "author": "willengler",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/UrbanCCD-UChicago/plenario-lambdas/issues"
+  },
+  "homepage": "https://github.com/UrbanCCD-UChicago/plenario-lambdas#readme"
+}
