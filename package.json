@@ -2,7 +2,9 @@
   "name": "publish-lambda",
   "version": "1.0.0",
   "description": "AWS lambda function that grabs incoming sensor observations off a Kinesis stream and publishes them to Redshift and Plenario socket server",
-  "engines": {"npm": "~6.10.3"},
+  "engines": {
+    "npm": "~6.10.3"
+  },
   "main": "index.js",
   "scripts": {
     "test": "mocha test"
@@ -18,6 +20,14 @@
   },
   "homepage": "https://github.com/UrbanCCD-UChicago/plenario-lambdas#readme",
   "devDependencies": {
-    "mocha": "^3.4.2"
+    "chai": "^4.0.2",
+    "mocha": "^3.4.2",
+    "sinon": "^2.3.4"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.69.0",
+    "bluebird": "^3.5.0",
+    "pg": "^6.2.4",
+    "redis": "^2.7.1"
   }
 }
