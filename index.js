@@ -1,18 +1,21 @@
 //@ts-check
 
-// Make sure all io-performing libraries return promises
+/* Make sure all io-performing libraries return promises */
 const Promise = require('bluebird');
-
 // https://aws.amazon.com/blogs/developer/support-for-promises-in-the-sdk/
 const aws = require('aws-sdk');
 aws.config.setPromisesDependency(Promise);
-
 // https://github.com/NodeRedis/node_redis#promises
 const redis = require('redis');
 Promise.promisifyAll(redis.RedisClient.prototype);
-
 // pg uses promises natively
 const pg = require('pg');
+
+/* Constants and config */
+const FIREHOSE_STREAM_NAME = 'DatabaseStream';
+const SOCKET_CHANNEL_NAME = 'plenario_observations';
+const REDIS_ENDPOINT = process.env.REDIS_ENDPOINT || 'localhost';
+
 
 exports.handler = handler;
 
@@ -22,20 +25,26 @@ exports.handler = handler;
  */
 function handler(event, context, callback) {
     // Decode and format the incoming observations,
-    // discarding the ones we can't parse.
-    const decodedRecords = event.Records.map(decode).filter(Boolean);
-    if (decodedRecords.length === 0) {
+    const observations = event.Records.map(decode)
+    // and discard the ones we can't parse.
+    .filter(Boolean);
+    
+    if (observations.length === 0) {
         callback(null, 'Early exit: No valid records');
         return;
     }
+    
     // If we're under test, then the test will pass in stub clients this way.
     const {stubs} = context;
     const clients = obtainClients(stubs);
 
     // Kick off the publication steps.
-    Promise.all([pushToFirehose(), pushToSocketServer()])
+    Promise.all([
+        pushToFirehose(observations, clients.firehose),
+        pushToSocketServer(observations, clients.postgres, clients.redisPublisher)
+    ])
     // Claim victory...
-    .then(() => callback(null, `Published ${decodedRecords.length} records`))
+    .then(() => callback(null, `Published ${observations.length} records`))
     // or propagate the error.
     .error(callback);
 }
@@ -66,25 +75,31 @@ function decode(record) {
     }
 }
 
-function hasRightProperties(observation) {
-    if (!observation) return false;
-    return ['network', 'meta_id', 'node_id', 'sensor', 'data', 'datetime']
-        .every(k => observation[k]);
-} 
+// Returns success or error promise.
+function pushToFirehose(observations, firehose) {
+    const payload = {
+        Records: observations.map(prepObservationForFirehose),
+        DeliveryStreamName: FIREHOSE_STREAM_NAME
+    };
+    return firehose.putRecordBatch(payload).promise();
+}
+
+function prepObservationForFirehose(o) {
+    let row = `${o.network},${o.node},${o.datetime},${o.meta_id},${o.sensor},'${o.data}'\n`;
+    // Not sure what's going on with this escaping... ask Jesse.
+    row = row.replace(/"/g, '""').replace(/'/g, '"');
+    return {Data: row};
+}
 
 // Returns success or error promise.
-function pushToSocketServer() {
+function pushToSocketServer(observations, postgres, publisher) {
     // Grab network layout tree
     // Validate observations
     // Push in a big batch to socket server
 }
 
 
-// Returns success or error promise.
-function pushToFirehose() {
-    // Do message conversion
-    // push in big batch
-}
+
 
 /**
  * Returns {
@@ -96,11 +111,13 @@ function pushToFirehose() {
 function obtainClients(stubs={}) {
     let {redisPublisher, postgres, firehose} = stubs;
     if(!firehose) {
-        firehose = Promise.promisifyAll(new aws.Firehose());
+        // Works automagically in the lambda runtime.
+        // Uses your ~/.aws config locally.
+        firehose = new aws.Firehose();
     }
     if (!redisPublisher) {
         redisPublisher = redis.createClient({
-            host: 'localhost', 
+            host: REDIS_ENDPOINT, 
             port: 6379
         });
     }
