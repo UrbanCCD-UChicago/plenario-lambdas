@@ -60,8 +60,6 @@ const clientCache = {
     }
 };
 
-
-
 exports.handler = handler;
 
 /**
@@ -160,7 +158,7 @@ function validate(tree, observation) {
     
     const formatted = {};
     for (var beehivePropertyName in observation.data) {
-        if (!(beehivePropertyName in sensorMetadata)) return null;
+        if (!(beehivePropertyName in sensorMetadata)) return false;
         const [feature, property] = sensorMetadata[beehivePropertyName].split('.');
         if (!formatted[feature]) {
             formatted[feature] = {};
