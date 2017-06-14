@@ -13,8 +13,53 @@ const pg = require('pg');
 
 /* Constants and config */
 const FIREHOSE_STREAM_NAME = 'DatabaseStream';
-const SOCKET_CHANNEL_NAME = 'plenario_observations';
+const REDIS_CHANNEL_NAME = 'plenario_observations';
 const REDIS_ENDPOINT = process.env.REDIS_ENDPOINT || 'localhost';
+
+/* Keep references to connections in global scope
+   so that we can hold on to connections across function invocations.
+   And create the clients lazily in case we don't end up needing them
+   (like in unit tests)
+*/
+const clientCache = {
+    get firehose() {
+        if (!this._firehoseClient) {
+            this._firehoseClient = new aws.Firehose();
+        }
+        return this._firehoseClient;
+    },
+    /**
+     * pg client constructor uses env variables by default 
+     * (https://node-postgres.com/api/client):
+     * 
+     * config = {
+        user?: string, // default process.env.PGUSER || process.env.USER
+        password?: string, //default process.env.PGPASSWORD
+        database?: string, // default process.env.PGDATABASE || process.env.USER
+        port?: number, // default process.env.PGPORT
+        connectionString?: string // e.g. postgres://user:password@host:5432/database
+        ssl?: any, // passed directly to node.TLSSocket
+        types?: any, // custom type parsers
+        }
+     */
+    get postgres() {
+        if (!this._postgresClient) {
+            this._postgresClient = new pg.Client({});
+        }
+        return this._postgresClient;
+    },
+
+    get redisPublisher() {
+        if (!this._redisClient) {
+            this._redisClient = redis.createClient({
+                host: REDIS_ENDPOINT, 
+                port: 6379
+            });
+        }
+        return this._redisClient;
+    }
+};
+
 
 
 exports.handler = handler;
@@ -34,14 +79,16 @@ function handler(event, context, callback) {
         return;
     }
     
-    // If we're under test, then the test will pass in stub clients this way.
+    // If we're under test, 
+    // then the test will pass in stub clients in context.stubs
     const {stubs} = context;
-    const clients = obtainClients(stubs);
+    let clientSource = stubs ? stubs : clientCache;
+    const {redisPublisher, postgres, firehose} = clientSource;
 
     // Kick off the publication steps.
     Promise.all([
-        pushToFirehose(observations, clients.firehose),
-        pushToSocketServer(observations, clients.postgres, clients.redisPublisher)
+        pushToFirehose(observations, firehose),
+        pushToSocketServer(observations, postgres, redisPublisher)
     ])
     // Claim victory...
     .then(() => callback(null, `Published ${observations.length} records`))
@@ -93,49 +140,32 @@ function prepObservationForFirehose(o) {
 
 // Returns success or error promise.
 function pushToSocketServer(observations, postgres, publisher) {
-    // Grab network layout tree
-    // Validate observations
-    // Push in a big batch to socket server
+    return postgres.query('SELECT sensor_tree();')
+    .then(tree => {
+        observations = observations.map(validate.bind(null, tree)).filter(Boolean);
+        publisher.publish(REDIS_CHANNEL_NAME, JSON.stringify(observations));
+    });
 }
 
-
-
-
-/**
- * Returns {
- *  redisPublisher: client with publish method,
- *  postgres: client with a query method that returns a promise(result),
- *  firehose: client with putRecordBatch method
- * }
- */
-function obtainClients(stubs={}) {
-    let {redisPublisher, postgres, firehose} = stubs;
-    if(!firehose) {
-        // Works automagically in the lambda runtime.
-        // Uses your ~/.aws config locally.
-        firehose = new aws.Firehose();
+function validate(tree, observation) {
+    const {network, node, sensor} = observation;
+    let sensorMetadata;
+    try {
+        sensorMetadata = tree[network][node][sensor];    
     }
-    if (!redisPublisher) {
-        redisPublisher = redis.createClient({
-            host: REDIS_ENDPOINT, 
-            port: 6379
-        });
+    catch (e) {
+         // If we failed to traverse that deep, observation must be invalid.
+        return false;
     }
-    /**
-     * Uses env variables by default (https://node-postgres.com/api/client):
-     * 
-     * config = {
-        user?: string, // default process.env.PGUSER || process.env.USER
-        password?: string, //default process.env.PGPASSWORD
-        database?: string, // default process.env.PGDATABASE || process.env.USER
-        port?: number, // default process.env.PGPORT
-        connectionString?: string // e.g. postgres://user:password@host:5432/database
-        ssl?: any, // passed directly to node.TLSSocket
-        types?: any, // custom type parsers
+    
+    const formatted = {};
+    for (var beehivePropertyName in observation.data) {
+        if (!(beehivePropertyName in sensorMetadata)) return null;
+        const [feature, property] = sensorMetadata[beehivePropertyName].split('.');
+        if (!formatted[feature]) {
+            formatted[feature] = {};
         }
-     */
-    if (!postgres) {
-        postgres = new pg.Client({});
+        formatted[feature][property] = observation.data[beehivePropertyName];
     }
-    return {redisPublisher, postgres, firehose};
+    return formatted;
 }
