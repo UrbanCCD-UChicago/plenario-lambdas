@@ -72,15 +72,14 @@ function handler(event, context, callback) {
     .filter(Boolean);
     
     if (observations.length === 0) {
+        console.log('No valid records!');
         callback(null, 'Early exit: No valid records');
         return;
     }
     
     // If we're under test, 
     // then the test will pass in stub clients in context.stubs
-    const {stubs} = context;
-    let clientSource = stubs ? stubs : clientCache;
-    const {redisPublisher, postgres, firehose} = clientSource;
+    const {redisPublisher, postgres, firehose} = getClients(context.stubs);
 
     // Kick off the publication steps.
     Promise.all([
@@ -88,9 +87,24 @@ function handler(event, context, callback) {
         pushToSocketServer(observations, postgres, redisPublisher)
     ])
     // Claim victory...
-    .then(() => callback(null, `Published ${observations.length} records`))
+    .then(results => {
+        // pushToSocketServer resolves with number of observations published
+        const msg = `Published ${results[1]} records`;
+        callback(null, msg)
+    })
     // or propagate the error.
     .error(callback);
+}
+
+function getClients(stubs={}) {
+    // Grab a real client for every needed client that wasn't stubbed.
+    const clients = Object.assign({}, stubs);
+    for (let clientName of ['postgres', 'firehose', 'redisPublisher']) {
+        if (!clients[clientName]) {
+            clients[clientName] = clientCache[clientName];
+        }
+    }
+    return clients;
 }
 
 /**
@@ -99,22 +113,23 @@ function handler(event, context, callback) {
  * @return {Object}
  */
 function decode(record) {
+    let data;
     try {
-        const data = Buffer.from(record.kinesis.data, 'base64').toString();
+        data = Buffer.from(record.kinesis.data, 'base64').toString();
         const parsed = JSON.parse(data);
         const valid = ['network', 'meta_id', 'node_id', 'sensor', 'data', 'datetime']
-                        .every(k => parsed[k]);
+                        .every(k => parsed.hasOwnProperty(k));
         if (!valid) return false;
         return {
             network: parsed.network,
             meta_id: parsed.meta_id,
             node: parsed.node_id,
-            sensor: parsed.node.toLowerCase(),
+            sensor: parsed.sensor.toLowerCase(),
             data: parsed.data,
             datetime: parsed.datetime.replace("T", " ")
         }
     } catch (e) {
-        console.log(`[index.js] could not decode ${record.kinesis.data}: ${e.toString()}`);
+        console.log(`[index.js] could not decode ${data}: ${e.toString()}`);
         return false;
     }
 }
@@ -144,7 +159,9 @@ function pushToSocketServer(observations, postgres, publisher) {
             return;
         }
         publisher.publish(REDIS_CHANNEL_NAME, JSON.stringify(observations));
-    });
+    })
+    // On success, return number of observations published
+    .then(() => observations.length);
 }
 
 function reportValidateFailure(observation) {
