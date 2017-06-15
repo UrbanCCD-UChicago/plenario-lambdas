@@ -1,4 +1,5 @@
 //@ts-check
+exports.handler = handler;
 
 /* Make sure all io-performing libraries return promises */
 const Promise = require('bluebird');
@@ -59,8 +60,6 @@ const clientCache = {
         return this._redisClient;
     }
 };
-
-exports.handler = handler;
 
 /**
  * Implementation of required handler for an incoming batch of kinesis records.
@@ -131,7 +130,7 @@ function pushToFirehose(observations, firehose) {
 
 function prepObservationForFirehose(o) {
     let row = `${o.network},${o.node},${o.datetime},${o.meta_id},${o.sensor},'${o.data}'\n`;
-    // Not sure what's going on with this escaping... ask Jesse.
+    // Note that the double quote (") is the Redshift escape character.
     row = row.replace(/"/g, '""').replace(/'/g, '"');
     return {Data: row};
 }
@@ -141,21 +140,65 @@ function pushToSocketServer(observations, postgres, publisher) {
     return postgres.query('SELECT sensor_tree();')
     .then(tree => {
         observations = observations.map(validate.bind(null, tree)).filter(Boolean);
+        if (observations.length === 0) {
+            return;
+        }
         publisher.publish(REDIS_CHANNEL_NAME, JSON.stringify(observations));
     });
 }
 
+function reportValidateFailure(observation) {
+    console.log(`[index.js validate] could not validate ${JSON.stringify(observation)}`);
+}
+
 function validate(tree, observation) {
+    // Does this combination of network, node and sensor exist in our metadata?
     const {network, node, sensor} = observation;
     let sensorMetadata;
     try {
         sensorMetadata = tree[network][node][sensor];    
     }
-    catch (e) {
-         // If we failed to traverse that deep, observation must be invalid.
+    catch (e) {}
+    // sensorMetadata will be undefined if an exception was thrown 
+    // or if the sensor metadata just happened to be undefined
+    if (!sensorMetadata) {
+        reportValidateFailure(observation)
         return false;
     }
     
+    /** Sensor metadata is structured like
+     *  
+     * We maintain a mapping from Beehive naming to Plenario naming in
+     * the sensorMetadata JSON:
+     * 
+     * {
+     *      accel_x: acceleration.x,
+     *      accel_y: acceleration.y
+     * }
+     * 
+     * where the keys are "nicknames" that Beehive uses,
+     * and the values are the features of interest maintained in Apiary.
+     * (The part before the dot is the feature of interest name;
+     *  the part after the dot is the specific property of the feature.)
+     * 
+     * The observation documents from beehive look like:
+     * 
+     * {
+     *      accel_x: <float foo>,
+     *      accel_y: <float bar>,
+     * }
+     * 
+     * So the formatting task is to translate from Beehive nickname 
+     * to the format we expose through our API.
+     * 
+     * {
+     *    acceleration: {
+     *      x: <float foo>,
+     *      y: <float bar>
+     *    }
+     * }
+     * 
+     * **/
     const formatted = {};
     for (var beehivePropertyName in observation.data) {
         if (!(beehivePropertyName in sensorMetadata)) return false;
