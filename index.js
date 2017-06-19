@@ -5,6 +5,8 @@
 //@ts-check
 exports.handler = handler;
 
+const _ = require('underscore');
+
 /* Make sure all io-performing libraries return promises */
 const Promise = require('bluebird');
 // https://aws.amazon.com/blogs/developer/support-for-promises-in-the-sdk/
@@ -20,28 +22,6 @@ const pg = require('pg');
 const FIREHOSE_STREAM_NAME = 'DatabaseStream';
 const REDIS_CHANNEL_NAME = 'plenario_observations';
 const REDIS_ENDPOINT = process.env.REDIS_ENDPOINT || 'localhost';
-
-/* Array merge helper from https://stackoverflow.com/a/10865042/3834754 */
-const mergeArrays = arrayOfArrays => [].concat.apply([], arrayOfArrays);
-
-/* Polyfill Object.values and Object.entries for Node 6.10
-    https://github.com/tc39/proposal-object-values-entries/blob/master/polyfill.js
- */
-const reduce = Function.bind.call(Function.call, Array.prototype.reduce);
-const isEnumerable = Function.bind.call(Function.call, Object.prototype.propertyIsEnumerable);
-const concat = Function.bind.call(Function.call, Array.prototype.concat);
-const keys = Reflect.ownKeys;
-
-if (!Object.values) {
-	Object.values = function values(O) {
-		return reduce(keys(O), (v, k) => concat(v, typeof k === 'string' && isEnumerable(O, k) ? [O[k]] : []), []);
-	};
-}
-if (!Object.entries) {
-	Object.entries = function entries(O) {
-		return reduce(keys(O), (e, k) => concat(e, typeof k === 'string' && isEnumerable(O, k) ? [[k, O[k]]] : []), []);
-	};
-}
 
 /**
  * Objects that survive across invocations
@@ -191,7 +171,7 @@ function pushToSocketServer(records, postgres, publisher) {
     .then(tree => {
         const observationArrays = records.map(format.bind(null, tree))
                                          .filter(Boolean);
-        const formattedObservations = mergeArrays(observationArrays);
+        const formattedObservations = _.flatten(observationArrays);
         if (formattedObservations.length === 0) {
             return Promise.resolve(0); // 0 observations published
         };
@@ -285,7 +265,7 @@ function format(tree, record) {
     }
     // Return array with one JSONAPI observation object 
     // for each feature present in the record
-    return Object.values(observations).map(o => 
+    return _.values(observations).map(o => 
         Object.assign({observation: o}, observationTemplate)
     );
 }
