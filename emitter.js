@@ -40,7 +40,6 @@ const recordsAsEvent = {
         }
     }))
 }
-// console.log(recordsAsEvent);
 
 function sendABatch() {
     const context = {

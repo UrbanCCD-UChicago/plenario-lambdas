@@ -2,7 +2,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 843 },
     sensor: "pr103j2",
     node_id: "0000001e0610ba72"
@@ -10,7 +10,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { intensity: 21464 },
     sensor: "tsl260rd",
     node_id: "0000001e0610ba72"
@@ -18,7 +18,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { intensity: 1928 },
     sensor: "apds-9006-020",
     node_id: "0000001e0610ba72"
@@ -26,7 +26,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { intensity: 31480 },
     sensor: "mlx75305",
     node_id: "0000001e0610ba72"
@@ -34,7 +34,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { intensity: 11818 },
     sensor: "ml8511",
     node_id: "0000001e0610ba72"
@@ -42,7 +42,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: {
       orient_y: 1,
       orient_z: -1,
@@ -57,7 +57,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 23.15, humidity: 11.4 },
     sensor: "htu21d",
     node_id: "0000001e0610ba72"
@@ -65,7 +65,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 2392, humidity: 1682 },
     sensor: "sht25",
     node_id: "0000001e0610ba72"
@@ -73,7 +73,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 23.93 },
     sensor: "tmp112",
     node_id: "0000001e0610ba72"
@@ -81,7 +81,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 45.58, humidity: 36.46 },
     sensor: "hih6130",
     node_id: "0000001e0610ba72"
@@ -89,7 +89,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 24.15 },
     sensor: "tsys01",
     node_id: "0000001e0610ba72"
@@ -97,7 +97,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 38.43 },
     sensor: "tmp421",
     node_id: "0000001e0610ba72"
@@ -105,7 +105,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { z: -0.637, y: -0.161, x: -0.402 },
     sensor: "hmc5883l",
     node_id: "0000001e0610ba72"
@@ -113,7 +113,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 2293, pressure: 83611 },
     sensor: "lps25h",
     node_id: "0000001e0610ba72"
@@ -121,7 +121,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { temperature: 23.89, pressure: 83287 },
     sensor: "bmp180",
     node_id: "0000001e0610ba72"
@@ -129,7 +129,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { z: 0.01, y: -1.01, x: 0.02 },
     sensor: "mma8452q",
     node_id: "0000001e0610ba72"
@@ -137,7 +137,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: { humidity: 264 },
     sensor: "hih4030",
     node_id: "0000001e0610ba72"
@@ -145,7 +145,7 @@ const sampleObservations = [
   {
     datetime: "2017-04-07 17:50:51",
     network: "array_of_things_chicago",
-    meta_id: 0,
+    meta_id: 1,
     data: {
       o3: 367816,
       co: 4410,
