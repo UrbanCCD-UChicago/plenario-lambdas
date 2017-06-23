@@ -168,7 +168,8 @@ function prepRecordForFirehose(o) {
  */
 function pushToSocketServer(records, postgres, publisher) {
     return postgres.query('SELECT sensor_tree();')
-    .then(tree => {
+    .then(result => {
+        const tree = result.rows[0].sensor_tree;
         const observationArrays = records.map(format.bind(null, tree))
                                          .filter(Boolean);
         const formattedObservations = _.flatten(observationArrays);
@@ -199,11 +200,9 @@ function format(tree, record) {
     const observationTemplate = {
         type: 'sensorObservations',
         attributes: {
-            metadata: {
-                sensor, node, network,
-                meta_id: record.meta_id,
-                timestamp: record.timestamp
-            }
+            sensor, node, network,
+            meta_id: record.meta_id,
+            timestamp: record.timestamp
         }
     };
     /** 
@@ -265,9 +264,11 @@ function format(tree, record) {
     }
     // Return array with one JSONAPI observation object 
     // for each feature present in the record
-    return _.values(observations).map(o => 
-        Object.assign({observation: o}, observationTemplate)
-    );
+    return _.values(observations).map(o => {
+        const templateInstance = Object.assign({}, observationTemplate);
+        Object.assign(templateInstance.attributes, o)
+        return templateInstance;
+    });
 }
 
 function extractSensorMetadata(tree, observation) {
